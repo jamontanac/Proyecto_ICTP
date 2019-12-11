@@ -33,8 +33,15 @@ int main(int argc, char* argv[])
   dimension = atoi(argv[1]);
   num_rank = atoi(argv[2]);
   iterations = atoi(argv[3]);
-  /* row_peek = atoi(argv[3]); */
-  /* col_peek = atoi(argv[4]); */
+  /* --------- To debug ------ */
+  row_peek = atoi(argv[4]);
+  col_peek = atoi(argv[5]);
+   /* if(argc != 4) */
+   /*  { */
+   /*    fprintf(stderr,"\n Wrong number of arguments. Usage: ./a.out dim it n m\n"); */
+   /*    return 1; */
+   /*  } */
+
 
   MPI_Init( &argc, &argv );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
@@ -68,8 +75,8 @@ int main(int argc, char* argv[])
   
   if( rank == num_rank )
     {
-      for(i =0;i < loc_size+2;i++){
-	for(j =0 ;j < dimension+2;j++){
+      for(i =1;i < loc_size;i++){
+	for(j =1 ;j < dimension;j++){
 	  printf("%f\t",matrix[i*(dimension+2)+j]);
 	}
 	printf("\n");
