@@ -10,7 +10,7 @@
 #define MPI_PROC_ROOT 0
 
 void save_gnuplot( double *M, size_t dim );
-void evolve( double * matrix, double *matrix_new, int dimension, int loc_size )
+void evolve( double * matrix, double *matrix_new, int dimension, int loc_size );
 double seconds( void );
 void Exchange_information(double *matrix,int rank,int nproc,int dimension,int loc_size);
 void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, int dimension,int rank,int nproc);
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
   for( it = 0; it < iterations; ++it )
     {
       Exchange_information(matrix,rank,nproc,dimension,loc_size);
-      evolve( matrix, matrix_new, dimension );
+      evolve( matrix, matrix_new, dimension,loc_size );
       tmp_matrix = matrix;
       matrix = matrix_new;
       matrix_new = tmp_matrix;
