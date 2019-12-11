@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
   
   dimension = atoi(argv[1]);
   num_rank = atoi(argv[2]);
-  /* iterations = atoi(argv[2]); */
+  iterations = atoi(argv[3]);
   /* row_peek = atoi(argv[3]); */
   /* col_peek = atoi(argv[4]); */
 
@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
     {
       Exchange_information(matrix,rank,nproc,dimension,loc_size);
       evolve( matrix, matrix_new, dimension,loc_size );
+      
       tmp_matrix = matrix;
       matrix = matrix_new;
       matrix_new = tmp_matrix;
