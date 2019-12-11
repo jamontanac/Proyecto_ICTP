@@ -40,7 +40,6 @@ int main(int argc, char* argv[])
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
   MPI_Comm_size( MPI_COMM_WORLD, &nproc) ;
 
-  
   loc_size = dimension/nproc;
   byte_dimension = sizeof(double) * ( loc_size + 2 ) * ( dimension + 2 );
   matrix = ( double* ) malloc( byte_dimension );
@@ -81,6 +80,8 @@ int main(int argc, char* argv[])
   MPI_Finalize();
   return 0;
 }
+
+
 /* -------------------------Evolve -------------------- */
 
 void evolve( double * matrix, double *matrix_new, int dimension, int loc_size )
@@ -95,6 +96,7 @@ void evolve( double * matrix, double *matrix_new, int dimension, int loc_size )
 	  matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] ); 
 }
 
+/* -------------------------Set Boundaries -------------------- */
 void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, int dimension,int rank,int nproc)
 {
   int i;
@@ -135,7 +137,7 @@ double seconds()
     sec = tmp.tv_sec + ((double)tmp.tv_usec)/1000000.0;
     return sec;
 }
-
+/* -------------------------Communicate information  -------------------- */
 void Exchange_information(double *matrix,int rank,int nproc,int dimension,int loc_size)
 {
   if(rank==0){
