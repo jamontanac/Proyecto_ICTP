@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
   loc_size = dimension/nproc;
   rest = offset = dimension % nproc;
   if(rank < rest){
-    size_loc += 1;
+    loc_size += 1;
     offset = 0;
   }
 
