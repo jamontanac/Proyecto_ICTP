@@ -20,12 +20,12 @@ void Print_matrix(double *matrix, int loc_size, int dimension);
 
 int main(int argc, char* argv[])
 {
-
+  
   int i, j, it;
-
+  
   
   double *matrix, *matrix_new, *tmp_matrix;
-
+  
   
   int dimension = 0, iterations = 0;
   int row_peek = 0, col_peek = 0; //To debug if everything is going correct
@@ -38,16 +38,16 @@ int main(int argc, char* argv[])
   
   dimension = atoi(argv[1]);
   iterations = atoi(argv[2]);
-
-   if(argc != 3)
+  
+  if(argc != 3)
     {
       fprintf(stderr,"\n Wrong number of arguments. Usage: ./a.out dim it n m\n");
       return 1;
     }
-
-   
-
-
+  
+  
+  
+  
   MPI_Init( &argc, &argv );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
   MPI_Comm_size( MPI_COMM_WORLD, &nproc) ;
@@ -67,15 +67,14 @@ int main(int argc, char* argv[])
   memset( matrix, 0, byte_dimension );
   memset( matrix_new, 0, byte_dimension );
   
-   //fill initial values
-  #pragma omp parallel for
+  //fill initial values
+#pragma omp parallel for
   for( i = 1; i <= loc_size; ++i )
-      for( j = 1; j <= dimension; ++j )
-	  matrix[ ( i * ( dimension + 2 ) ) + j ] = 0.5;
-
-
-  Set_Boundary_Conditions(matrix,matrix_new,loc_size,
-			  dimension,rank,nproc,offset);
+    for( j = 1; j <= dimension; ++j )
+      matrix[ ( i * ( dimension + 2 ) ) + j ] = 0.5;
+  
+  
+  Set_Boundary_Conditions(matrix,matrix_new,loc_size,dimension,rank,nproc,offset);
   t_start = seconds();
   for( it = 0; it < iterations; ++it )
     {
@@ -90,29 +89,44 @@ int main(int argc, char* argv[])
   
   MPI_Reduce(&time_local,&Total_time,1,MPI_DOUBLE,MPI_SUM,MPI_PROC_ROOT,MPI_COMM_WORLD);  
   
-
+  
   
   if(rank==MPI_PROC_ROOT){
-      Print_matrix(matrix,loc_size,dimension);
-    /* printf("i am getting a size of %d out of %d\n",loc_size,dimension); */
-
-      for(int pe = 1; pe < nproc; pe++){
-	MPI_Recv(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,pe,pe
-		 ,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-	/* printf("i am getting a size of %d out of %d\n",loc_size,dimension); */
-	/* Print_matrix(matrix,loc_size,dimension); */
-	
-	if( rest && pe >= rest)
-	  Print_matrix(matrix,loc_size-1,dimension);
-	
-	else Print_matrix(matrix,loc_size,dimension);
-	
+    FILE *file;
+    file = fopen("data.txt","w");
+    for(i =1;i <= loc_size;i++){
+      for(j =1 ;j <= dimension;j++){
+	fprintf(file,"%f\t",matrix[i*(dimension+2)+j]);
+      }
+      fprintf(file,"\n");
     }
+    /* Print_matrix(matrix,loc_size,dimension); */
+    
+    for(int pe = 1; pe < nproc; pe++){
+      MPI_Recv(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,pe,pe,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+      
+      if( rest && pe >= rest){
+	for(i =1;i <= loc_size;i++){
+	  for(j =1 ;j <= dimension;j++){
+	    fprintf(file,"%f\t",matrix[i*(dimension+2)+j]);
+	  }
+	  fprintf(file,"\n");
+	}
+      }
+	else{
+	  for(i =1;i <= loc_size;i++){
+	    for(j =1 ;j <= dimension;j++){
+	      fprintf(file,"%f\t",matrix[i*(dimension+2)+j]);
+	    }
+	    fprintf(file,"\n");
+	  }
+	}/* Print_matrix(matrix,loc_size,dimension); */
+    }
+    fclose( file );
   }
-  else{
-    MPI_Send(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE
-	     ,MPI_PROC_ROOT,rank,MPI_COMM_WORLD);
-  }
+  else
+    MPI_Send(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,MPI_PROC_ROOT,rank,MPI_COMM_WORLD);
+  
   free( matrix );
   free( matrix_new );
 	
