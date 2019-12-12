@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <mpi.h>
+#include <omp.h>
 
 #define TAG_1 100
 #define TAG_2 200
@@ -13,7 +14,7 @@ void save_gnuplot( double *M, size_t dim );
 void evolve( double * matrix, double *matrix_new, int dimension, int loc_size );
 double seconds( void );
 void Exchange_information(double *matrix,int rank,int nproc,int dimension,int loc_size);
-void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, int dimension,int rank,int nproc);
+void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, int dimension,int rank,int nproc,int offset);
 int main(int argc, char* argv[])
 {
 
@@ -29,6 +30,8 @@ int main(int argc, char* argv[])
   int loc_size;
   size_t byte_dimension = 0;
   int num_rank;
+  int rest, offset;
+  double t_start, time_local, Total_time;
   
   dimension = atoi(argv[1]);
   num_rank = atoi(argv[2]);
@@ -46,8 +49,16 @@ int main(int argc, char* argv[])
   MPI_Init( &argc, &argv );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
   MPI_Comm_size( MPI_COMM_WORLD, &nproc) ;
-
+  
+  // Setting a balanced distribution of the matrix
+  
   loc_size = dimension/nproc;
+  rest = offset = dimension % nproc;
+  if(rank < rest){
+    loc_size += 1;
+    offset = 0;
+  }
+  
   byte_dimension = sizeof(double) * ( loc_size + 2 ) * ( dimension + 2 );
   matrix = ( double* ) malloc( byte_dimension );
   matrix_new = ( double* ) malloc( byte_dimension );
@@ -60,29 +71,42 @@ int main(int argc, char* argv[])
 	  matrix[ ( i * ( dimension + 2 ) ) + j ] = 0.5;
 
 
-  Set_Boundary_Conditions(matrix,matrix_new,loc_size,dimension,rank,nproc);
-
+  Set_Boundary_Conditions(matrix,matrix_new,loc_size,dimension,rank,nproc,offset);
+  t_start = seconds();
   for( it = 0; it < iterations; ++it )
     {
       Exchange_information(matrix,rank,nproc,dimension,loc_size);
       evolve( matrix, matrix_new, dimension,loc_size );
-      
       tmp_matrix = matrix;
       matrix = matrix_new;
       matrix_new = tmp_matrix;
     }
-  
-  
-  if( rank == num_rank )
+  time_local = seconds()-t_start;
+  Total_time=0;
+  /* printf("\n local time = %f in rank = %d\n", time_local, rank); */
+  MPI_Reduce(&time_local,&Total_time,1,MPI_DOUBLE,MPI_SUM,MPI_PROC_ROOT,MPI_COMM_WORLD);
+  if(rank==0)
     {
-      for(i =1;i < loc_size;i++){
-	for(j =0 ;j < dimension+1;j++){
-	  printf("%f\t",matrix[i*(dimension+2)+j]);
-	}
-	printf("\n");
-      }
+      printf("\n Total time = %f in rank = %d\n", Total_time, rank);
     }
-
+    
+  /* printf( "\nelapsed time = %f seconds\n", t_end - t_start ); */
+  /* printf( "\nmatrix[%zu,%zu] = %f\n", row_peek, col_peek, matrix[ ( row_peek + 1 ) * ( dimension + 2 ) + ( col_peek + 1 ) ] ); */
+  
+  
+  /* if( rank == num_rank ) */
+  /*   { */
+  /*     for(i =1;i < loc_size;i++){ */
+  /* 	for(j =0 ;j < dimension+1;j++){ */
+  /* 	  printf("%f\t",matrix[i*(dimension+2)+j]); */
+  /* 	} */
+  /* 	printf("\n"); */
+  /*     } */
+  /*   } */
+  /* save_gnuplot( matrix, dimension ); */
+  
+  free( matrix );
+  free( matrix_new );
 	
   MPI_Finalize();
   return 0;
@@ -104,13 +128,13 @@ void evolve( double * matrix, double *matrix_new, int dimension, int loc_size )
 }
 
 /* -------------------------Set Boundaries -------------------- */
-void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, int dimension,int rank,int nproc)
+void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, int dimension,int rank,int nproc,int offset)
 {
   int i;
   double increment = 100.0 / ( dimension + 1 );
   for(i = 1; i<=loc_size; i++){
-      matrix[i*(dimension + 2)] = rank*increment*loc_size + i*increment;
-      matrix_new[i*(dimension + 2)] = rank*increment*loc_size + i*increment;
+    matrix[i*(dimension + 2)] = (rank*loc_size + i + offset)*increment;
+    matrix_new[i*(dimension + 2)] = (rank*loc_size + i + offset)*increment;
     }
   
   if(rank==nproc-1){
