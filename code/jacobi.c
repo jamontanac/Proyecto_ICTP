@@ -44,9 +44,9 @@ int main(int argc, char* argv[])
   row_peek = atoi(argv[3]);
   col_peek = atoi(argv[4]);
 
-  /* printf("matrix size = %zu\n", dimension); */
-  /* printf("number of iterations = %zu\n", iterations); */
-  /* printf("element for checking = Mat[%zu,%zu]\n",row_peek, col_peek); */
+  printf("matrix size = %zu\n", dimension);
+  printf("number of iterations = %zu\n", iterations);
+  printf("element for checking = Mat[%zu,%zu]\n",row_peek, col_peek);
 
   if((row_peek > dimension) || (col_peek > dimension))
     {
@@ -94,16 +94,10 @@ int main(int argc, char* argv[])
     }
   t_end = seconds();
   
-  /* printf( "\nelapsed time = %f seconds\n", t_end - t_start ); */
-  /* printf( "\nmatrix[%zu,%zu] = %f\n", row_peek, col_peek, matrix[ ( row_peek + 1 ) * ( dimension + 2 ) + ( col_peek + 1 ) ] ); */
-  for(i =1;i < dimension+1;i++){
-  	for(j =1 ;j < dimension+1;j++){
-  	  printf("%f\t",matrix[i*(dimension+2)+j]);
-  	}
-  	printf("\n");
-      }
+  printf( "\nelapsed time = %f seconds\n", t_end - t_start );
+  printf( "\nmatrix[%zu,%zu] = %f\n", row_peek, col_peek, matrix[ ( row_peek + 1 ) * ( dimension + 2 ) + ( col_peek + 1 ) ] );
 
-  /* save_gnuplot( matrix, dimension ); */
+  save_gnuplot( matrix, dimension );
   
   free( matrix );
   free( matrix_new );
@@ -135,8 +129,8 @@ void save_gnuplot( double *M, size_t dimension )
   
   file = fopen( "solution.dat", "w" );
   
-  for( i = 1; i < dimension + 1; ++i )
-    for( j = 1; j < dimension + 1; ++j )
+  for( i = 0; i < dimension + 2; ++i )
+    for( j = 0; j < dimension + 2; ++j )
       fprintf(file, "%f\t%f\t%f\n", h * j, -h * i, M[ ( i * ( dimension + 2 ) ) + j ] );
   
   fclose( file );

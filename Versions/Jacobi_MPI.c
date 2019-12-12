@@ -66,6 +66,7 @@ int main(int argc, char* argv[])
   memset( matrix_new, 0, byte_dimension );
   
    //fill initial values
+  #pragma omp parallel for
   for( i = 1; i <= loc_size; ++i )
       for( j = 1; j <= dimension; ++j )
 	  matrix[ ( i * ( dimension + 2 ) ) + j ] = 0.5;
@@ -85,24 +86,24 @@ int main(int argc, char* argv[])
   Total_time=0;
   /* printf("\n local time = %f in rank = %d\n", time_local, rank); */
   MPI_Reduce(&time_local,&Total_time,1,MPI_DOUBLE,MPI_SUM,MPI_PROC_ROOT,MPI_COMM_WORLD);
-  if(rank==0)
-    {
-      printf("\n Total time = %f in rank = %d\n", Total_time, rank);
-    }
+  /* if(rank==0) */
+  /*   { */
+  /*     printf("\n Average time = %f\n", Total_time/nproc); */
+  /*   } */
     
   /* printf( "\nelapsed time = %f seconds\n", t_end - t_start ); */
   /* printf( "\nmatrix[%zu,%zu] = %f\n", row_peek, col_peek, matrix[ ( row_peek + 1 ) * ( dimension + 2 ) + ( col_peek + 1 ) ] ); */
   
   
-  /* if( rank == num_rank ) */
-  /*   { */
-  /*     for(i =1;i < loc_size;i++){ */
-  /* 	for(j =0 ;j < dimension+1;j++){ */
-  /* 	  printf("%f\t",matrix[i*(dimension+2)+j]); */
-  /* 	} */
-  /* 	printf("\n"); */
-  /*     } */
-  /*   } */
+  if( rank == num_rank )
+    {
+      for(i =1;i < loc_size+1;i++){
+  	for(j =1 ;j < dimension+1;j++){
+  	  printf("%f\t",matrix[i*(dimension+2)+j]);
+  	}
+  	printf("\n");
+      }
+    }
   /* save_gnuplot( matrix, dimension ); */
   
   free( matrix );
@@ -118,6 +119,7 @@ int main(int argc, char* argv[])
 void evolve( double * matrix, double *matrix_new, int dimension, int loc_size )
 {  
   size_t i , j;
+  #pragma omp parallel for
   for( i = 1 ; i <= loc_size; ++i )
     for( j = 1; j <= dimension; ++j )
       matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
@@ -132,12 +134,14 @@ void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, i
 {
   int i;
   double increment = 100.0 / ( dimension + 1 );
+  #pragma omp parallel for
   for(i = 1; i<=loc_size; i++){
     matrix[i*(dimension + 2)] = (rank*loc_size + i + offset)*increment;
     matrix_new[i*(dimension + 2)] = (rank*loc_size + i + offset)*increment;
     }
   
   if(rank==nproc-1){
+    #pragma omp parallel for
     for( i=1; i <= dimension+1; ++i ){
       matrix[ ( ( loc_size + 1 ) * ( dimension + 2 ) ) + ( dimension + 1 - i ) ] = i * increment;
       matrix_new[ ( ( loc_size + 1 ) * ( dimension + 2 ) ) + ( dimension + 1 - i ) ] = i * increment;
@@ -146,6 +150,7 @@ void Set_Boundary_Conditions(double * matrix,double *matrix_new, int loc_size, i
 }
 
 /* -------------------------Prepare for gnuplot -------------------- */
+
 void save_gnuplot( double *M, size_t dimension )
 {
   size_t i , j;
