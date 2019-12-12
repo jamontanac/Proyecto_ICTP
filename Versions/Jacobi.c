@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
   if( rank == num_rank )
     {
       for(i =1;i < loc_size;i++){
-	for(j =1 ;j < dimension;j++){
+	for(j =0 ;j < dimension+1;j++){
 	  printf("%f\t",matrix[i*(dimension+2)+j]);
 	}
 	printf("\n");
