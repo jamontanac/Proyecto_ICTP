@@ -81,117 +81,128 @@ int main(int argc, char* argv[])
   
   MPI_Request request_2;
   MPI_Status  status_2;
-  
-  if(rank==MPI_PROC_ROOT){
-    int Destination_Source = rank+1;
-    MPI_Irecv(&matrix[(loc_size+1)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source,TAG_1,MPI_COMM_WORLD,&request_1);
+
+
+  for( it = 0; it < iterations; ++it ){
     
-    // Evolve the lower frontier
+    if(rank==MPI_PROC_ROOT){
+      int Destination_Source = rank+1;
+      MPI_Irecv(&matrix[(loc_size+1)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source,TAG_2,MPI_COMM_WORLD,&request_1);
+      
+      // Evolve the lower frontier
 #pragma omp parallel for
-    for(i = 1; i< dimension;i++){
-      matrix_new[(loc_size)*(dimension+2)+i] = ( 0.25 ) *
-	( matrix[ ( ( loc_size - 1 ) * ( dimension + 2 ) ) + i ]
-	  + matrix[ ( loc_size * ( dimension + 2 ) ) + ( i + 1 ) ] +
-	  matrix[ ( ( loc_size + 1 ) * ( dimension + 2 ) ) + i ] +
-	  matrix[ ( loc_size * ( dimension + 2 ) ) + ( i - 1 ) ] );
+      for(i = 1; i< dimension;i++){
+	matrix_new[(loc_size)*(dimension+2)+i] = ( 0.25 ) *
+	  ( matrix[ ( ( loc_size - 1 ) * ( dimension + 2 ) ) + i ]
+	    + matrix[ ( loc_size * ( dimension + 2 ) ) + ( i + 1 ) ] +
+	    matrix[ ( ( loc_size + 1 ) * ( dimension + 2 ) ) + i ] +
+	    matrix[ ( loc_size * ( dimension + 2 ) ) + ( i - 1 ) ] );
+      }
+      
+      
+      MPI_Isend(&matrix[(loc_size)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source,TAG_1,MPI_COMM_WORLD,&request_2);
+      
+      
+      //Evolve the Bulk
+#pragma omp parallel for
+      for( i = 1 ; i <= loc_size-1; ++i )
+	for( j = 1; j <= dimension; ++j )
+	  matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
+	    ( matrix[ ( ( i - 1 ) * ( dimension + 2 ) ) + j ] + 
+	      matrix[ ( i * ( dimension + 2 ) ) + ( j + 1 ) ] + 	  
+	      matrix[ ( ( i + 1 ) * ( dimension + 2 ) ) + j ] + 
+	      matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] ); 
+      
+      MPI_Wait(&request_1, &status_1);
     }
     
     
-    MPI_Isend(&matrix[(loc_size)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source,TAG_2,MPI_COMM_WORLD,&request_1);
-    
-    
+    else if(rank==nproc-1){
+      int Destination_Source = rank-1;
+      MPI_Irecv(&matrix[0],dimension+2,MPI_DOUBLE,Destination_Source,TAG_1,MPI_COMM_WORLD,&request_2);
+      
+      // Evolve the upper frontier
+#pragma omp parallel for
+      for(i = 1; i< dimension;i++){
+	matrix_new[(dimension+2)+i] = ( 0.25 ) *
+	  ( matrix[ i ]
+	    + matrix[ (( dimension + 2 ) ) + ( i + 1 ) ] +
+	    matrix[ ( ( 1+1 ) * ( dimension + 2 ) ) + i ] +
+	    matrix[ (( dimension + 2 ) ) + ( i - 1 ) ] );
+      }
+      
+      MPI_Isend(&matrix[(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source,TAG_2,MPI_COMM_WORLD,&request_1);
+      
     //Evolve the Bulk
 #pragma omp parallel for
-    for( i = 1 ; i <= loc_size-1; ++i )
-      for( j = 1; j <= dimension; ++j )
-	matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
-	  ( matrix[ ( ( i - 1 ) * ( dimension + 2 ) ) + j ] + 
-	    matrix[ ( i * ( dimension + 2 ) ) + ( j + 1 ) ] + 	  
-	    matrix[ ( ( i + 1 ) * ( dimension + 2 ) ) + j ] + 
-	    matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] ); 
-    
-    MPI_Wait(&request_1, &status_1);
-  }
-
-  
-  else if(rank==nproc-1){
-    int Destination_Source = rank-1;
-    MPI_Irecv(&matrix[0],dimension+2,MPI_DOUBLE,Destination_Source,TAG_1,MPI_COMM_WORLD,&request_2);
-    
-    // Evolve the upper frontier
-#pragma omp parallel for
-    for(i = 1; i< dimension;i++){
-      matrix_new[(dimension+2)+i] = ( 0.25 ) *
-	( matrix[ i ]
-	  + matrix[ (( dimension + 2 ) ) + ( i + 1 ) ] +
-	  matrix[ ( ( 1+1 ) * ( dimension + 2 ) ) + i ] +
-	  matrix[ (( dimension + 2 ) ) + ( i - 1 ) ] );
+      for( i = 2 ; i <= loc_size; ++i )
+	for( j = 1; j <= dimension; ++j )
+	  matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
+	    ( matrix[ ( ( i - 1 ) * ( dimension + 2 ) ) + j ] + 
+	      matrix[ ( i * ( dimension + 2 ) ) + ( j + 1 ) ] + 	  
+	      matrix[ ( ( i + 1 ) * ( dimension + 2 ) ) + j ] + 
+	      matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] );
+      
+      MPI_Wait(&request_2, &status_2);
     }
     
-    MPI_Isend(&matrix[(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source,TAG_2,MPI_COMM_WORLD,&request_2);
     
-    //Evolve the Bulk
+    
+    else{
+      int Destination_Source_up=rank-1;
+      int Destination_Source_down = rank+1;
+      
+      //Receiving
+      //get the lower part
+      MPI_Irecv(&matrix[(loc_size+1)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source_down,TAG_1,MPI_COMM_WORLD,&request_1);
+      //get the upper part
+      MPI_Irecv(&matrix[0],dimension+2,MPI_DOUBLE,Destination_Source_down,TAG_2,MPI_COMM_WORLD,&request_2);
+      
+      // Evolve the lower frontier
 #pragma omp parallel for
-    for( i = 2 ; i <= loc_size; ++i )
-      for( j = 1; j <= dimension; ++j )
-	matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
-	  ( matrix[ ( ( i - 1 ) * ( dimension + 2 ) ) + j ] + 
-	    matrix[ ( i * ( dimension + 2 ) ) + ( j + 1 ) ] + 	  
-	    matrix[ ( ( i + 1 ) * ( dimension + 2 ) ) + j ] + 
-	    matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] );
-    
-    MPI_Wait(&request_2, &status_2);
-  }
-
-
-  
-  else{
-    int Destination_Source_up=rank-1;
-    int Destination_Source_down = rank+1;
-    
-    //Receiving
-    MPI_Irecv(&matrix[(loc_size+1)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source_down,TAG_1,MPI_COMM_WORLD,&request_1);
-    MPI_Irecv(&matrix[0],dimension+2,MPI_DOUBLE,Destination_Source_down,TAG_1,MPI_COMM_WORLD,&request_2);
-    
-    // Evolve the lower frontier
-#pragma omp parallel for
-    for(i = 1; i< dimension;i++){
-      matrix_new[(loc_size)*(dimension+2)+i] = ( 0.25 ) *
-	( matrix[ ( ( loc_size - 1 ) * ( dimension + 2 ) ) + i ]
-	  + matrix[ ( loc_size * ( dimension + 2 ) ) + ( i + 1 ) ] +
-	  matrix[ ( ( loc_size + 1 ) * ( dimension + 2 ) ) + i ] +
-	  matrix[ ( loc_size * ( dimension + 2 ) ) + ( i - 1 ) ] );
+      for(i = 1; i< dimension;i++){
+	matrix_new[(loc_size)*(dimension+2)+i] = ( 0.25 ) *
+	  ( matrix[ ( ( loc_size - 1 ) * ( dimension + 2 ) ) + i ]
+	    + matrix[ ( loc_size * ( dimension + 2 ) ) + ( i + 1 ) ] +
+	    matrix[ ( ( loc_size + 1 ) * ( dimension + 2 ) ) + i ] +
+	    matrix[ ( loc_size * ( dimension + 2 ) ) + ( i - 1 ) ] );
     }
-    
-    // Evolve the upper frontier
+      
+      // Evolve the upper frontier
 #pragma omp parallel for
-    for(i = 1; i< dimension;i++){
-      matrix_new[(dimension+2)+i] = ( 0.25 ) *
-	( matrix[ i ]
-	  + matrix[ (( dimension + 2 ) ) + ( i + 1 ) ] +
-	  matrix[ ( ( 1+1 ) * ( dimension + 2 ) ) + i ] +
-	  matrix[ (( dimension + 2 ) ) + ( i - 1 ) ] );	
+      for(i = 1; i< dimension;i++){
+	matrix_new[(dimension+2)+i] = ( 0.25 ) *
+	  ( matrix[ i ]
+	    + matrix[ (( dimension + 2 ) ) + ( i + 1 ) ] +
+	    matrix[ ( ( 1+1 ) * ( dimension + 2 ) ) + i ] +
+	    matrix[ (( dimension + 2 ) ) + ( i - 1 ) ] );	
+      }
+
+      //Sending the lower part
+      MPI_Isend(&matrix[(loc_size)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source_down,TAG_1,MPI_COMM_WORLD,&request_2);
+      //Sending the upper part
+      MPI_Isend(&matrix[(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source_up,TAG_2,MPI_COMM_WORLD,&request_1);
+      
+      
+      //evolve the bulk
+#pragma omp parallel for
+      for( i = 2 ; i <= loc_size-1; ++i )
+	for( j = 1; j <= dimension; ++j )
+	  matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
+	    ( matrix[ ( ( i - 1 ) * ( dimension + 2 ) ) + j ] + 
+	      matrix[ ( i * ( dimension + 2 ) ) + ( j + 1 ) ] + 	  
+	      matrix[ ( ( i + 1 ) * ( dimension + 2 ) ) + j ] + 
+	      matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] );
+      
+      MPI_Wait(&request_2, &status_2);
+      MPI_Wait(&request_1, &status_1);
+      
     }
-    
-    MPI_Isend(&matrix[(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source_up,TAG_2,MPI_COMM_WORLD,&request_2);
-    MPI_Isend(&matrix[(loc_size)*(dimension+2)],dimension+2,MPI_DOUBLE,Destination_Source_down,TAG_2,MPI_COMM_WORLD,&request_1);
-    
-    //evolve the bulk
-#pragma omp parallel for
-    for( i = 2 ; i <= loc_size-1; ++i )
-      for( j = 1; j <= dimension; ++j )
-	matrix_new[ ( i * ( dimension + 2 ) ) + j ] = ( 0.25 ) * 
-	  ( matrix[ ( ( i - 1 ) * ( dimension + 2 ) ) + j ] + 
-	    matrix[ ( i * ( dimension + 2 ) ) + ( j + 1 ) ] + 	  
-	    matrix[ ( ( i + 1 ) * ( dimension + 2 ) ) + j ] + 
-	    matrix[ ( i * ( dimension + 2 ) ) + ( j - 1 ) ] );
-    
-    MPI_Wait(&request_2, &status_2);
-    MPI_Wait(&request_1, &status_1);
-    
+
+   tmp_matrix = matrix;
+   matrix = matrix_new;
+   matrix_new = tmp_matrix;
   }
-  
-  
   
   
   /* t_start = seconds(); */
