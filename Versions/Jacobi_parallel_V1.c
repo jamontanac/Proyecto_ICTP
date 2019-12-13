@@ -88,44 +88,46 @@ int main(int argc, char* argv[])
   Total_time=0;
   
   MPI_Reduce(&time_local,&Total_time,1,MPI_DOUBLE,MPI_SUM,MPI_PROC_ROOT,MPI_COMM_WORLD);  
+  if(rank==MPI_PROC_ROOT)
+    printf("%d\t%.15f\n",nproc,Total_time/nproc);
   
   
-  
-  if(rank==MPI_PROC_ROOT){
-    FILE *file;
-    file = fopen("data.txt","w");
-    for(i =1;i <= loc_size;i++){
-      for(j =1 ;j <= dimension;j++){
-	fprintf(file,"%f\t",matrix[i*(dimension+2)+j]);
-      }
-      fprintf(file,"\n");
-    }
-    /* Print_matrix(matrix,loc_size,dimension); */
+  /* if(rank==MPI_PROC_ROOT){ */
     
-    for(int pe = 1; pe < nproc; pe++){
-      MPI_Recv(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,pe,pe,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+  /*   FILE *file; */
+  /*   file = fopen("data.txt","w"); */
+  /*   for(i =1;i <= loc_size;i++){ */
+  /*     for(j =1 ;j <= dimension;j++){ */
+  /* 	fprintf(file,"%f\t",matrix[i*(dimension+2)+j]); */
+  /*     } */
+  /*     fprintf(file,"\n"); */
+  /*   } */
+  /*   /\* Print_matrix(matrix,loc_size,dimension); *\/ */
+    
+  /*   for(int pe = 1; pe < nproc; pe++){ */
+  /*     MPI_Recv(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,pe,pe,MPI_COMM_WORLD,MPI_STATUS_IGNORE); */
       
-      if( rest && pe >= rest){
-	for(i =1;i <= loc_size;i++){
-	  for(j =1 ;j <= dimension;j++){
-	    fprintf(file,"%f\t",matrix[i*(dimension+2)+j]);
-	  }
-	  fprintf(file,"\n");
-	}
-      }
-	else{
-	  for(i =1;i <= loc_size;i++){
-	    for(j =1 ;j <= dimension;j++){
-	      fprintf(file,"%f\t",matrix[i*(dimension+2)+j]);
-	    }
-	    fprintf(file,"\n");
-	  }
-	}/* Print_matrix(matrix,loc_size,dimension); */
-    }
-    fclose( file );
-  }
-  else
-    MPI_Send(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,MPI_PROC_ROOT,rank,MPI_COMM_WORLD);
+  /*     if( rest && pe >= rest){ */
+  /* 	for(i =1;i <= loc_size;i++){ */
+  /* 	  for(j =1 ;j <= dimension;j++){ */
+  /* 	    fprintf(file,"%f\t",matrix[i*(dimension+2)+j]); */
+  /* 	  } */
+  /* 	  fprintf(file,"\n"); */
+  /* 	} */
+  /*     } */
+  /* 	else{ */
+  /* 	  for(i =1;i <= loc_size;i++){ */
+  /* 	    for(j =1 ;j <= dimension;j++){ */
+  /* 	      fprintf(file,"%f\t",matrix[i*(dimension+2)+j]); */
+  /* 	    } */
+  /* 	    fprintf(file,"\n"); */
+  /* 	  } */
+  /* 	}/\* Print_matrix(matrix,loc_size,dimension); *\/ */
+  /*   } */
+  /*   fclose( file ); */
+  /* } */
+  /* else */
+  /*   MPI_Send(matrix,(dimension+2)*(loc_size+2),MPI_DOUBLE,MPI_PROC_ROOT,rank,MPI_COMM_WORLD); */
   
   free( matrix );
   free( matrix_new );

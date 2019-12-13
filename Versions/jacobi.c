@@ -33,27 +33,27 @@ int main(int argc, char* argv[])
   size_t byte_dimension = 0;
 
   // check on input parameters
-  if(argc != 5)
-    {
-      fprintf(stderr,"\nwrong number of arguments. Usage: ./a.out dim it n m\n");
-      return 1;
-    }
+  /* if(argc != 5) */
+  /*   { */
+  /*     fprintf(stderr,"\nwrong number of arguments. Usage: ./a.out dim it n m\n"); */
+  /*     return 1; */
+  /*   } */
   
   dimension = atoi(argv[1]);
   iterations = atoi(argv[2]);
-  row_peek = atoi(argv[3]);
-  col_peek = atoi(argv[4]);
+  /* row_peek = atoi(argv[3]); */
+  /* col_peek = atoi(argv[4]); */
 
   /* printf("matrix size = %zu\n", dimension); */
   /* printf("number of iterations = %zu\n", iterations); */
   /* printf("element for checking = Mat[%zu,%zu]\n",row_peek, col_peek); */
 
-  if((row_peek > dimension) || (col_peek > dimension))
-    {
-      fprintf(stderr, "Cannot Peek a matrix element outside of the matrix dimension\n");
-      fprintf(stderr, "Arguments n and m must be smaller than %zu\n", dimension);
-      return 1;
-    }
+  /* if((row_peek > dimension) || (col_peek > dimension)) */
+  /*   { */
+  /*     fprintf(stderr, "Cannot Peek a matrix element outside of the matrix dimension\n"); */
+  /*     fprintf(stderr, "Arguments n and m must be smaller than %zu\n", dimension); */
+  /*     return 1; */
+  /*   } */
   
 
   byte_dimension = sizeof(double) * ( dimension + 2 ) * ( dimension + 2 );
@@ -93,15 +93,15 @@ int main(int argc, char* argv[])
       
     }
   t_end = seconds();
-  
+  printf("%d\t%.15f\n",1,t_end-t_start);
   /* printf( "\nelapsed time = %f seconds\n", t_end - t_start ); */
   /* printf( "\nmatrix[%zu,%zu] = %f\n", row_peek, col_peek, matrix[ ( row_peek + 1 ) * ( dimension + 2 ) + ( col_peek + 1 ) ] ); */
-  for(i =1;i < dimension+1;i++){
-  	for(j =1 ;j < dimension+1;j++){
-  	  printf("%f\t",matrix[i*(dimension+2)+j]);
-  	}
-  	printf("\n");
-      }
+  /* for(i =1;i < dimension+1;i++){ */
+  /* 	for(j =1 ;j < dimension+1;j++){ */
+  /* 	  printf("%f\t",matrix[i*(dimension+2)+j]); */
+  /* 	} */
+  /* 	printf("\n"); */
+  /*     } */
 
   /* save_gnuplot( matrix, dimension ); */
   
